@@ -1,9 +1,5 @@
-from datetime import datetime
-from enum import Enum
 
-from sqlalchemy import ARRAY, Column, DateTime, Float, ForeignKey, Integer, Interval, String, Table
-from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy import Column, Integer, String
 
 from app.postgres.database import Base
 

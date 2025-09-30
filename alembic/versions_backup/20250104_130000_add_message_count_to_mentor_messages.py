@@ -5,9 +5,9 @@ Revises: mentor_messages_001
 Create Date: 2025-01-04 13:00:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'add_message_count_001'
@@ -23,4 +23,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Remove message_count column from mentor_messages table
-    op.drop_column('mentor_messages', 'message_count') 
+    op.drop_column('mentor_messages', 'message_count')

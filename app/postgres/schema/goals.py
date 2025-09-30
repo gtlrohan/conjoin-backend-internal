@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.postgres.database import Base
 from app.postgres.schema.card import CardDetail
 from app.postgres.schema.user import User

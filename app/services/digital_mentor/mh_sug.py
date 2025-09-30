@@ -1,6 +1,5 @@
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 
 mh_sug_json = [
     {"cat": "work anxiety", "activity": "contact community", "severity": "4+", "alone": "alone", "duration": "10,20", "location": "work or home"},

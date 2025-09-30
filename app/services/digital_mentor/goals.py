@@ -1,5 +1,5 @@
-import re
 import random
+import re
 from datetime import datetime
 
 
@@ -85,7 +85,7 @@ def get_goal_suggestion(date, usr):
     goals = usr["goals"]
     database = usr["history"]
     prog = [get_progress(g, date, database) for g in goals]
-    obs_prog = [c for c in prog]
+    obs_prog = list(prog)
     exp_prog = [expected_progress(g) for g in goals]
     urgency = [1 - (o / e) if e > 0 else 1 for o, e in zip(obs_prog, exp_prog)]
     k = randp(softmax(urgency))

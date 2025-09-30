@@ -1,10 +1,14 @@
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.middleware.jwt import JWTBearer, decodeJWT
 from app.postgres.crud.card import retrieve_completed_cards_with_score
-from app.postgres.crud.cognitive_score import retrieve_cognitive_score, retrieve_user_cognitive_score_impacts
+from app.postgres.crud.cognitive_score import (
+    retrieve_cognitive_score,
+    retrieve_user_cognitive_score_impacts,
+)
 from app.postgres.database import get_db
 
 router = APIRouter(prefix="/scores", tags=["Scores"])

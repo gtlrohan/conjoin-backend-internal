@@ -1,4 +1,3 @@
-from enum import Enum
 
 from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, Numeric, String
 from sqlalchemy import Enum as SQLAlchemyEnum
@@ -14,7 +13,7 @@ class UserPreferences(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("User.user_id"), nullable=False)
     preferenceName = Column(String, nullable=False)
-    preferenceMetric = Column(Numeric, CheckConstraint("\"preferenceMetric\" >= 0 AND \"preferenceMetric\" <= 1"), nullable=True)
+    preferenceMetric = Column(Numeric, CheckConstraint('"preferenceMetric" >= 0 AND "preferenceMetric" <= 1'), nullable=True)
     category = Column(SQLAlchemyEnum(CategoryEnum), nullable=False)
 
     user = relationship("User", back_populates="preferences")

@@ -1,34 +1,43 @@
 import json
 from datetime import date, datetime, time, timedelta
-import pytz
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, Query, Form
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.middleware.jwt import JWTBearer, decodeJWT
 from app.postgres.crud.card import (
-    create_user_card,
     create_card_details,
     create_completion_details,
+    create_user_card,
     delete_card_records_for_user,
     retrieve_affirmation_card,
     retrieve_all_card_details,
+    retrieve_card_by_id,
     retrieve_card_details,
     retrieve_cards,
-    retrieve_card_by_id,
     retrieve_completed_cards,
     retrieve_next_available_slot,
     update_card_time,
 )
-from app.postgres.crud.cognitive_score import delete_cognitive_score_impacts_for_user, update_cognitive_score
+from app.postgres.crud.cognitive_score import (
+    delete_cognitive_score_impacts_for_user,
+    update_cognitive_score,
+)
 from app.postgres.crud.user import update_morning_orientation_status
-from app.postgres.models.card import CardStatus, CategoryEnum, CompletionLevel, HowWasIt, Reschedule, SpecialActions, ToD
 from app.postgres.database import get_db
-from app.postgres.schema.card import CardType, TimeOfDay
+from app.postgres.models.card import (
+    CategoryEnum,
+    CompletionDetails,
+    ConfirmReschedule,
+    HowWasIt,
+    Reschedule,
+    SpecialActions,
+    ToD,
+)
+from app.postgres.schema.card import CardType
 from app.utils.decision_tree import CardActionsDecisionTree
-from app.postgres.models.card import CompletionDetails, ConfirmReschedule
 
 router = APIRouter(prefix="/cards", tags=["Cards"])
 
@@ -72,7 +81,7 @@ def get_affirmation_card(
     access_token: str = Depends(JWTBearer()),
 ):
     token = decodeJWT(access_token)
-    user_id = token["user_id"]
+    token["user_id"]
     affirmation_card_details = retrieve_affirmation_card(db, affirmation_number)
 
     if hasattr(affirmation_card_details, "tod"):
@@ -148,7 +157,7 @@ def creates_card_details(
 ):
     details_dict = json.loads(details)
     token = decodeJWT(access_token)
-    user_id = token["user_id"]
+    token["user_id"]
     card = create_card_details(
         db=db,
         card_type=card_type,
@@ -174,7 +183,6 @@ def updates_the_cards_completion_details(
     user_id = token["user_id"]
     create_completion_details(db=db, user_id=user_id, completion_details=details)
     card = retrieve_card_by_id(db, user_id, details.card_id)
-    return_message = "success"
     if card.card_details_id == 77 and (details.how_was_it == HowWasIt.terrible or details.how_was_it == HowWasIt.bad):
         card_data = {
             "card_details_id": 49,
@@ -239,7 +247,7 @@ def reschedule_card(request: ConfirmReschedule, db: Session = Depends(get_db), a
     new_time = datetime.strptime(request.new_time, "%Y-%m-%d %H:%M:%S")
 
     # Update and commit the card's new time
-    updated_card = update_card_time(db=db, card=card, new_time=new_time)
+    update_card_time(db=db, card=card, new_time=new_time)
 
     return {"message": "success"}
 

@@ -1,13 +1,15 @@
-from . import auth
-from . import banking
-from . import cards
-from . import goals
-from . import gpt
-from . import user
-from . import scores
-from . import mh_categories
-from . import voice_therapist
-from . import mentor_messages
-from . import father_analysis_cards
-from . import wellness
-from . import ai_suggestions
+from . import (
+    ai_suggestions,
+    auth,
+    banking,
+    cards,
+    father_analysis_cards,
+    goals,
+    gpt,
+    mentor_messages,
+    mh_categories,
+    scores,
+    user,
+    voice_therapist,
+    wellness,
+)

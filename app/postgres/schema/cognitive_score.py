@@ -1,6 +1,6 @@
 from datetime import datetime
+
 from sqlalchemy import (
-    ARRAY,
     Column,
     DateTime,
     ForeignKey,
@@ -8,6 +8,7 @@ from sqlalchemy import (
     Numeric,
 )
 from sqlalchemy.orm import relationship
+
 from app.postgres.database import Base
 
 

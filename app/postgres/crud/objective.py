@@ -1,4 +1,5 @@
 from typing import List
+
 from sqlalchemy.orm import Session
 
 from app.postgres.schema.objective import Objective

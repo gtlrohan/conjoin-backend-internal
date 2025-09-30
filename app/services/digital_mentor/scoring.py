@@ -1,8 +1,7 @@
 import numpy as np
-import pandas as pd
-from app.services.digital_mentor.mh_sug import mh_sug
 from scipy.stats import bernoulli
 
+from app.services.digital_mentor.mh_sug import mh_sug
 from app.services.digital_mentor.user import User
 
 

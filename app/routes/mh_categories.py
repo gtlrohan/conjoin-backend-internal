@@ -1,11 +1,14 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, Form
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.middleware.jwt import JWTBearer, decodeJWT
-from app.postgres.crud.mh_categories import create_card_detail_from_json, create_card_mh_categories, create_mh_category
+from app.middleware.jwt import JWTBearer
+from app.postgres.crud.mh_categories import (
+    create_card_detail_from_json,
+    create_card_mh_categories,
+    create_mh_category,
+)
 from app.postgres.database import get_db
 
 router = APIRouter(prefix="/mh-categories", tags=["Mental health categories"])

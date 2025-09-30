@@ -5,12 +5,12 @@ Revises: deee5da3b87e
 Create Date: 2024-10-01 14:09:11.298885
 
 """
-from sqlalchemy import Enum
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import Enum
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'd7aedaa97b56'

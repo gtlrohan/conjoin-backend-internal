@@ -1,36 +1,43 @@
+import os
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
-from fastapi import FastAPI, Request, Response
-from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from wtforms import SelectField
-import os
-from dotenv import load_dotenv
 
 from app.postgres.database import engine
-
-# Import your SQLAlchemy models
-from app.postgres.schema.user import User
 from app.postgres.schema.card import (
-    UserCard,
-    CardDetail,
     CardCompletionDetail,
-    TimeOfDay,
-    CategoryEnum,
-    CardType,
+    CardDetail,
     CardStatus,
+    CardType,
+    CategoryEnum,
     CompletionLevel,
     HowWasIt,
     SpecialActions,
+    TimeOfDay,
+    UserCard,
 )
-from app.postgres.schema.external_token import ExternalToken
-from app.postgres.schema.goals import Goal, UserGoals, Goals2Card
-from app.postgres.schema.cognitive_score import CognitiveScore, CognitiveScoreImpact
-from app.postgres.schema.fitbit_sleep import FitbitSleepLog, FitbitSleepLevel, FitbitSleepSummary
-from app.postgres.schema.fitbit_heart import FitbitHeartLog, FitbitHeartRateZone, FitbitCustomHeartRateZone
-from app.postgres.schema.google_calendar import CalendarEvent, EventCreator, EventOrganizer, EventAttendee
-from app.postgres.schema.user_preferences import UserPreferences
 from app.postgres.schema.cognitive_fingerprint import CognitiveFingerprint
+from app.postgres.schema.cognitive_score import CognitiveScore
+from app.postgres.schema.external_token import ExternalToken
+from app.postgres.schema.fitbit_heart import (
+    FitbitHeartLog,
+)
+from app.postgres.schema.fitbit_sleep import (
+    FitbitSleepLog,
+)
+from app.postgres.schema.goals import Goal, UserGoals
+from app.postgres.schema.google_calendar import (
+    CalendarEvent,
+)
+
+# Import your SQLAlchemy models
+from app.postgres.schema.user import User
+from app.postgres.schema.user_preferences import UserPreferences
 
 # Load environment variables
 load_dotenv()

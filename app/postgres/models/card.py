@@ -1,7 +1,8 @@
-from typing import Any, List, Optional
-from pydantic import BaseModel
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, List, Optional
+
+from pydantic import BaseModel
 
 
 class CompletionLevel(str, Enum):

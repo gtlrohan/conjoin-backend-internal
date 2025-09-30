@@ -5,9 +5,9 @@ Revises: 20250812_000000_add_linked_user_card_id_to_voice_sessions
 Create Date: 2025-01-18 00:00:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '20250118_000000_add_daily_wellness_metrics'
@@ -30,16 +30,16 @@ def upgrade():
         sa.ForeignKeyConstraint(['user_id'], ['User.user_id'], ),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create index on id
     op.create_index(op.f('ix_daily_wellness_metrics_id'), 'daily_wellness_metrics', ['id'], unique=False)
-    
+
     # Create index on user_id for faster queries
     op.create_index('ix_daily_wellness_metrics_user_id', 'daily_wellness_metrics', ['user_id'], unique=False)
-    
+
     # Create index on date for faster date range queries
     op.create_index('ix_daily_wellness_metrics_date', 'daily_wellness_metrics', ['date'], unique=False)
-    
+
     # Create unique index on user_id + date to prevent duplicate entries for same day
     op.create_index('ix_daily_wellness_metrics_user_date', 'daily_wellness_metrics', ['user_id', 'date'], unique=True)
 
@@ -50,6 +50,6 @@ def downgrade():
     op.drop_index('ix_daily_wellness_metrics_date', table_name='daily_wellness_metrics')
     op.drop_index('ix_daily_wellness_metrics_user_id', table_name='daily_wellness_metrics')
     op.drop_index(op.f('ix_daily_wellness_metrics_id'), table_name='daily_wellness_metrics')
-    
+
     # Drop table
     op.drop_table('daily_wellness_metrics')

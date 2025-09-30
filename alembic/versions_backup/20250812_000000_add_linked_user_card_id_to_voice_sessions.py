@@ -6,9 +6,9 @@ Revises: 20250104_130000_add_message_count_to_mentor_messages
 Create Date: 2025-08-12
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '20250812_000000'

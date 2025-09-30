@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class TherapyType(str, Enum):
@@ -115,4 +116,4 @@ class WebSocketResponse(BaseModel):
     type: str  # "audio", "text", "error", "status"
     data: Optional[str] = None
     session_id: Optional[str] = None
-    timestamp: datetime = None 
+    timestamp: datetime = None

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List
+
 from sqlalchemy.orm import Session
 
 from app.postgres.schema.goals import Goal, Goals2Card, UserGoals

@@ -4,14 +4,12 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Float,
-    ForeignKey,
     Integer,
     String,
 )
 from sqlalchemy.orm import relationship
-from app.postgres.database import Base
 
+from app.postgres.database import Base
 
 # class CognitiveFingerprint(Base):
 #     __tablename__ = "CognitiveFingerprint"
@@ -65,12 +63,12 @@ class User(Base):
 
     # Define the relationship with cognitive fingerprint
     cognitive_fingerprints = relationship("CognitiveFingerprint", back_populates="user")
-    
+
     # Define the relationship with voice therapy sessions
     voice_therapy_sessions = relationship("VoiceTherapySession", back_populates="user")
-    
+
     # Define the relationship with mentor messages
     mentor_messages = relationship("MentorMessage", back_populates="user")
-    
+
     # Define the relationship with wellness metrics
     wellness_metrics = relationship("DailyWellnessMetrics", back_populates="user")

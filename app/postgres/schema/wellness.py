@@ -1,14 +1,16 @@
-from datetime import datetime, date
+from datetime import date, datetime
+
 from sqlalchemy import (
+    CheckConstraint,
     Column,
-    DateTime,
     Date,
+    DateTime,
+    Float,
     ForeignKey,
     Integer,
-    Float,
-    CheckConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app.postgres.database import Base
 
 
@@ -24,8 +26,8 @@ class DailyWellnessMetrics(Base):
 
     # Add check constraints to ensure values are between 1.0-10.0 (allowing decimals)
     __table_args__ = (
-        CheckConstraint('energy_level >= 0.0 AND energy_level <= 10.0', name='check_energy_level_range'),
-        CheckConstraint('stress_level >= 0.0 AND stress_level <= 10.0', name='check_stress_level_range'),
+        CheckConstraint("energy_level >= 0.0 AND energy_level <= 10.0", name="check_energy_level_range"),
+        CheckConstraint("stress_level >= 0.0 AND stress_level <= 10.0", name="check_stress_level_range"),
     )
 
     # Define the relationship with User

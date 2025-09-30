@@ -16,7 +16,7 @@ class DecisionNode:
             return None
         rand_val = random.random()
         cumulative_probability = 0.0
-        for condition, outcomes in self.outcomes.items():
+        for _condition, outcomes in self.outcomes.items():
             for probability, node in outcomes:
                 cumulative_probability += probability
                 if rand_val <= cumulative_probability:

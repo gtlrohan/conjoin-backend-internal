@@ -5,8 +5,6 @@ Revises: voice_therapy_001, transcript_column_001
 Create Date: 2024-12-22 14:00:00.000000
 
 """
-from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -23,4 +21,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # This is a merge migration - no changes needed
-    pass 
+    pass

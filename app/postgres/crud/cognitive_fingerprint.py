@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.postgres.schema.cognitive_fingerprint import CognitiveFingerprint
 

@@ -1,5 +1,7 @@
 import datetime
+
 from sqlalchemy.orm import Session
+
 from app.postgres.schema.card import CardCompletionDetail, UserCard
 from app.postgres.schema.cognitive_score import CognitiveScore, CognitiveScoreImpact
 

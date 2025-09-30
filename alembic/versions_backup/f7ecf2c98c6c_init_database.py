@@ -1,15 +1,11 @@
 """Init database
 
 Revision ID: f7ecf2c98c6c
-Revises: 
+Revises:
 Create Date: 2024-08-23 13:39:30.386802
 
 """
 from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = 'f7ecf2c98c6c'

@@ -1,9 +1,7 @@
 from datetime import date, datetime, timedelta
-import random
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.middleware.jwt import JWTBearer, decodeJWT
@@ -12,12 +10,17 @@ from app.postgres.crud.card import (
     delete_card_records_for_user,
     retrieve_cards,
     retrieve_completed_cards_with_score,
-    retrieve_random_card_detail_sample,
 )
-from app.postgres.crud.cognitive_fingerprint import retrieve_cognitive_fingerprint, update_cognitive_fingerprint
-from app.postgres.crud.cognitive_score import delete_cognitive_score_impacts_for_user, retrieve_cognitive_score, update_cognitive_score
+from app.postgres.crud.cognitive_fingerprint import (
+    retrieve_cognitive_fingerprint,
+    update_cognitive_fingerprint,
+)
+from app.postgres.crud.cognitive_score import (
+    delete_cognitive_score_impacts_for_user,
+    retrieve_cognitive_score,
+    update_cognitive_score,
+)
 from app.postgres.crud.goal import retrieve_all_user_goals
-from app.postgres.crud.objective import retrieve_user_objectives
 from app.postgres.crud.user import (
     retrieve_user_by_id,
     update_morning_orientation_status,
@@ -28,17 +31,17 @@ from app.postgres.crud.user_preferences import (
 )
 from app.postgres.database import get_db
 from app.postgres.models.card import CardData, CognitiveFingerprintUpdate
-from app.postgres.models.user import MorningOrientationAltTimeRequest, MorningOrientationRequest
+from app.postgres.models.user import (
+    MorningOrientationAltTimeRequest,
+    MorningOrientationRequest,
+)
 from app.postgres.schema.card import CardDetail, UserCard
 from app.postgres.schema.user_preferences import CategoryEnum
 from app.services.digital_mentor.cfp import CognitiveFingerprint
-from app.services.digital_mentor.goals import random_goals
 from app.services.digital_mentor.mentor import Mentor
-from app.services.digital_mentor.propose import morning_orientation
 from app.services.digital_mentor.user import User
 
 router = APIRouter(prefix="/user", tags=["User"])
-
 
 
 @router.get("/")
@@ -49,12 +52,12 @@ async def gets_user_details(
     token = decodeJWT(access_token)
     user_id = token["user_id"]
     user = retrieve_user_by_id(db=db, user_id=user_id)
-    
+
     # Check if user exists
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    if user.completed_morning_orientation == None:
+
+    if user.completed_morning_orientation is None:
         user.completed_morning_orientation = False
     cfp = await retrieve_cognitive_fingerprint(db, user_id)
     cfp = {

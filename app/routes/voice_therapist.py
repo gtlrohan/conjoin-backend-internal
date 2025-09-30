@@ -1,43 +1,42 @@
-import uuid
 import logging
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict
+from datetime import datetime
+from typing import Dict, List, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.middleware.jwt import JWTBearer, decodeJWT
-from app.postgres.database import get_db
-from app.postgres.crud.voice_therapy import (
-    create_voice_therapy_session,
-    get_voice_therapy_session,
-    end_voice_therapy_session,
-    get_user_voice_therapy_sessions,
-    add_voice_transcript_to_chat,
-    process_voice_transcript_for_chat,
-)
-from app.postgres.crud.gpt import create_mentor_message, get_mentor_messages
-from app.postgres.models.voice_therapy import (
-    VoiceSessionStartRequest,
-    VoiceSessionStartResponse,
-    VoiceSessionEndRequest,
-    VoiceSessionResponse,
-    VoiceSessionsListResponse,
-    VoiceSessionMessage,
-    FatherCallAnalysisRequest,
-    FatherCallAnalysisResponse,
-    MatrixSelection,
-    AnalysisSuggestion,
-)
 from app.constants import (
     OPENAI_API_KEY,
     OPENAI_REALTIME_MODEL,
-    REALTIME_VAD_THRESHOLD,
+    REALTIME_STT_LANGUAGE,
+    REALTIME_STT_MODEL,
     REALTIME_VAD_PREFIX_PADDING_MS,
     REALTIME_VAD_SILENCE_DURATION_MS,
-    REALTIME_STT_MODEL,
-    REALTIME_STT_LANGUAGE,
+    REALTIME_VAD_THRESHOLD,
+)
+from app.middleware.jwt import JWTBearer, decodeJWT
+from app.postgres.crud.gpt import create_mentor_message, get_mentor_messages
+from app.postgres.crud.voice_therapy import (
+    add_voice_transcript_to_chat,
+    create_voice_therapy_session,
+    end_voice_therapy_session,
+    get_user_voice_therapy_sessions,
+    get_voice_therapy_session,
+    process_voice_transcript_for_chat,
+)
+from app.postgres.database import get_db
+from app.postgres.models.voice_therapy import (
+    AnalysisSuggestion,
+    FatherCallAnalysisRequest,
+    FatherCallAnalysisResponse,
+    MatrixSelection,
+    VoiceSessionEndRequest,
+    VoiceSessionMessage,
+    VoiceSessionResponse,
+    VoiceSessionsListResponse,
+    VoiceSessionStartRequest,
+    VoiceSessionStartResponse,
 )
 
 router = APIRouter(prefix="/voice-therapist", tags=["Voice Therapist"])
@@ -56,51 +55,51 @@ async def start_voice_session(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         logger.info(f"Creating OpenAI Realtime session for user {user_id}, therapy type: {request.therapy_type}")
-        logger.info(f"Kevin's context will be included in session instructions (entry_source: {request.entry_source}, context_summary: {request.context_summary})")
-        
+        logger.info(
+            f"Kevin's context will be included in session instructions (entry_source: {request.entry_source}, context_summary: {request.context_summary})"
+        )
+
         # Resolve VAD/STT settings (request overrides env defaults)
         vad_threshold = request.vad_threshold if getattr(request, "vad_threshold", None) is not None else REALTIME_VAD_THRESHOLD
-        vad_prefix_padding_ms = request.vad_prefix_padding_ms if getattr(request, "vad_prefix_padding_ms", None) is not None else REALTIME_VAD_PREFIX_PADDING_MS
-        vad_silence_duration_ms = request.vad_silence_duration_ms if getattr(request, "vad_silence_duration_ms", None) is not None else REALTIME_VAD_SILENCE_DURATION_MS
+        vad_prefix_padding_ms = (
+            request.vad_prefix_padding_ms if getattr(request, "vad_prefix_padding_ms", None) is not None else REALTIME_VAD_PREFIX_PADDING_MS
+        )
+        vad_silence_duration_ms = (
+            request.vad_silence_duration_ms if getattr(request, "vad_silence_duration_ms", None) is not None else REALTIME_VAD_SILENCE_DURATION_MS
+        )
         stt_language = request.stt_language or REALTIME_STT_LANGUAGE
 
         # Call OpenAI's Realtime Sessions API
         async with httpx.AsyncClient(timeout=30.0) as client:
             openai_response = await client.post(
                 "https://api.openai.com/v1/realtime/sessions",
-                headers={
-                    "Authorization": f"Bearer {OPENAI_API_KEY}",
-                    "Content-Type": "application/json"
-                },
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
                 json={
                     "model": OPENAI_REALTIME_MODEL,
                     "voice": "alloy",
                     "instructions": build_contextual_instructions(db, user_id, request.therapy_type, request.entry_source, request.context_summary),
                     "input_audio_transcription": {"model": REALTIME_STT_MODEL, "language": stt_language},
                     "tools": get_therapy_tools(),
-                    "tool_choice": "auto", 
+                    "tool_choice": "auto",
                     "temperature": 0.8,
                     "turn_detection": {
                         "type": "server_vad",
                         "threshold": vad_threshold,
                         "prefix_padding_ms": vad_prefix_padding_ms,
-                        "silence_duration_ms": vad_silence_duration_ms
-                    }
-                }
+                        "silence_duration_ms": vad_silence_duration_ms,
+                    },
+                },
             )
-        
+
         if openai_response.status_code != 200:
             logger.error(f"OpenAI API error: {openai_response.status_code} - {openai_response.text}")
-            raise HTTPException(
-                status_code=500, 
-                detail=f"OpenAI API error: {openai_response.status_code} - {openai_response.text}"
-            )
-            
+            raise HTTPException(status_code=500, detail=f"OpenAI API error: {openai_response.status_code} - {openai_response.text}")
+
         session_data = openai_response.json()
         logger.info(f"OpenAI session created: {session_data['id']}")
-        
+
         # Store session in database for tracking
         db_session = create_voice_therapy_session(
             db=db,
@@ -109,20 +108,20 @@ async def start_voice_session(
             therapy_type=request.therapy_type,
             mood_before=request.mood_before,
             openai_session_id=session_data["id"],
-            ephemeral_token_expires=datetime.fromtimestamp(session_data["expires_at"])
+            ephemeral_token_expires=datetime.fromtimestamp(session_data["expires_at"]),
         )
-        
+
         logger.info(f"Database session created for OpenAI session {session_data['id']}")
-        
+
         return VoiceSessionStartResponse(
             session_id=session_data["id"],
             websocket_url=None,  # Not used for WebRTC
             therapy_type=request.therapy_type,
             start_time=db_session.start_time,
             client_secret=session_data["client_secret"],
-            expires_at=session_data["expires_at"]
+            expires_at=session_data["expires_at"],
         )
-        
+
     except httpx.TimeoutException:
         logger.error("OpenAI API request timed out")
         raise HTTPException(status_code=504, detail="OpenAI API request timed out")
@@ -148,15 +147,15 @@ async def end_voice_session(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Find session in database
         db_session = get_voice_therapy_session(db, session_id)
         if not db_session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         if db_session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to end this session")
-        
+
         # End the session in database with transcript
         updated_session = end_voice_therapy_session(
             db=db,
@@ -166,7 +165,7 @@ async def end_voice_session(
             transcript=request.transcript,
             linked_user_card_id=request.linked_user_card_id,
         )
-        
+
         if not updated_session:
             raise HTTPException(status_code=404, detail="Failed to end session")
 
@@ -178,65 +177,58 @@ async def end_voice_session(
                 logger.info(f"Voice transcript saved to mentor chat for session {session_id}")
             except Exception as e:
                 logger.error(f"Failed to save transcript to mentor chat: {e}")
-        
+
         # For father call analysis sessions, analyze transcript and return preview (don't auto-schedule)
         analysis_preview = None
-        logger.info(f"Checking for father call analysis: therapy_type={updated_session.therapy_type}, has_transcript={bool(request.transcript)}, transcript_length={len(request.transcript) if request.transcript else 0}")
-        
-        if (
-            updated_session.therapy_type == "father_call_analysis"
-            and request.transcript
-            and len(request.transcript) > 0
-        ):
+        logger.info(
+            f"Checking for father call analysis: therapy_type={updated_session.therapy_type}, has_transcript={bool(request.transcript)}, transcript_length={len(request.transcript) if request.transcript else 0}"
+        )
+
+        if updated_session.therapy_type == "father_call_analysis" and request.transcript and len(request.transcript) > 0:
             # COMPREHENSIVE VALIDATION: Ensure transcript has meaningful conversation content
             total_content = "".join([msg.message for msg in request.transcript if msg.message])
             user_messages = [msg.message for msg in request.transcript if msg.speaker == "user" and msg.message]
             assistant_messages = [msg.message for msg in request.transcript if msg.speaker == "assistant" and msg.message]
-            
+
             total_user_content = "".join(user_messages).strip()
             total_assistant_content = "".join(assistant_messages).strip()
-            
-            logger.info(f"Transcript validation:")
+
+            logger.info("Transcript validation:")
             logger.info(f"- Total content: {len(total_content)} chars")
             logger.info(f"- User content: {len(total_user_content)} chars")
             logger.info(f"- Assistant content: {len(total_assistant_content)} chars")
             logger.info(f"- User messages: {len(user_messages)}")
             logger.info(f"- Assistant messages: {len(assistant_messages)}")
             logger.info(f"- First 200 chars: '{total_content[:200]}'")
-            
+
             # STRICT VALIDATION: Must have real conversation from both sides
-            greeting_words = ['hello', 'hi', 'hey', 'hello there', 'hi there', 'thank you', 'thanks']
-            non_greeting_messages = [
-                msg for msg in user_messages 
-                if msg.lower().strip() not in greeting_words and len(msg.strip()) > 3
-            ]
-            
+            greeting_words = ["hello", "hi", "hey", "hello there", "hi there", "thank you", "thanks"]
+            non_greeting_messages = [msg for msg in user_messages if msg.lower().strip() not in greeting_words and len(msg.strip()) > 3]
+
             logger.info(f"- Non-greeting messages: {len(non_greeting_messages)}")
             logger.info(f"- Sample non-greetings: {non_greeting_messages[:3] if non_greeting_messages else 'None'}")
-            
+
             has_meaningful_conversation = (
-                len(request.transcript) >= 2 and  # At least 2 messages
-                len(total_user_content) >= 20 and  # User said at least 20 meaningful characters  
-                len(total_assistant_content) >= 50 and  # AI responded meaningfully
-                len(user_messages) >= 2 and  # Has multiple user messages
-                len(assistant_messages) >= 2 and  # Has multiple AI responses
-                len(non_greeting_messages) >= 1  # At least one substantive message beyond greetings
+                len(request.transcript) >= 2
+                and len(total_user_content) >= 20  # At least 2 messages
+                and len(total_assistant_content) >= 50  # User said at least 20 meaningful characters
+                and len(user_messages) >= 2  # AI responded meaningfully
+                and len(assistant_messages) >= 2  # Has multiple user messages
+                and len(non_greeting_messages) >= 1  # Has multiple AI responses  # At least one substantive message beyond greetings
             )
-            
+
             if not has_meaningful_conversation:
-                logger.warning(f"Insufficient meaningful conversation for father call analysis:")
-                logger.warning(f"- Messages: {len(request.transcript)}, User chars: {len(total_user_content)}, AI chars: {len(total_assistant_content)}")
-                logger.warning(f"- Skipping analysis to prevent fake matrix generation")
+                logger.warning("Insufficient meaningful conversation for father call analysis:")
+                logger.warning(
+                    f"- Messages: {len(request.transcript)}, User chars: {len(total_user_content)}, AI chars: {len(total_assistant_content)}"
+                )
+                logger.warning("- Skipping analysis to prevent fake matrix generation")
                 analysis_preview = None
             else:
                 try:
-                    analysis_result = await _analyze_father_call_transcript(
-                        db, user_id, session_id, request.transcript
-                    )
-                    if analysis_result and analysis_result.get('analysis_complete', False):
-                        logger.info(
-                            f"Father call analysis completed successfully for session {session_id}"
-                        )
+                    analysis_result = await _analyze_father_call_transcript(db, user_id, session_id, request.transcript)
+                    if analysis_result and analysis_result.get("analysis_complete", False):
+                        logger.info(f"Father call analysis completed successfully for session {session_id}")
                         analysis_preview = {
                             "session_id": session_id,
                             "matrix": analysis_result.get("matrix_selections"),
@@ -245,35 +237,33 @@ async def end_voice_session(
                             "cta": {
                                 "label": "Add to plan",
                                 "action": f"/voice-therapist/session/{session_id}/schedule-father-reflection",
-                                "title": "Follow up on bad call with father"
-                            }
+                                "title": "Follow up on bad call with father",
+                            },
                         }
                     else:
                         logger.info(f"Father call analysis could not be completed for session {session_id} - insufficient conversation content")
                         analysis_preview = None
                 except Exception as e:
-                    logger.error(
-                        f"Error in father call analysis for session {session_id}: {e}"
-                    )
-        
+                    logger.error(f"Error in father call analysis for session {session_id}: {e}")
+
         logger.info(f"Final analysis_preview status: {bool(analysis_preview)} for session {session_id}")
-        
+
         logger.info(f"Ended voice therapy session {session_id} for user {user_id}")
-        
+
         # Create response with session data
         response = VoiceSessionResponse.from_orm(updated_session)
         if analysis_preview:
             # Attach non-ORM field manually
             response.analysis_preview = analysis_preview
-        
+
         # Add chat summary to response if available
         if chat_summary:
             # We could extend the response model to include this, but for now
             # we'll log it and the frontend can handle it appropriately
             logger.info(f"Chat summary generated for session {session_id}: {chat_summary[:100]}...")
-        
+
         return response
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -294,21 +284,21 @@ async def get_user_sessions(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         sessions = get_user_voice_therapy_sessions(
             db=db,
             user_id=user_id,
             limit=limit,
             offset=offset,
         )
-        
+
         session_responses = [VoiceSessionResponse.from_orm(session) for session in sessions]
-        
+
         return VoiceSessionsListResponse(
             sessions=session_responses,
             total_count=len(session_responses),
         )
-        
+
     except Exception as e:
         logger.error(f"Error retrieving user sessions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve sessions: {str(e)}")
@@ -326,27 +316,23 @@ async def get_session_summary(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Find session in database
         db_session = get_voice_therapy_session(db, session_id)
         if not db_session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         if db_session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to access this session")
-        
+
         # Generate summary from transcript if available
         if db_session.transcript:
             # Convert stored transcript back to VoiceSessionMessage objects
             transcript_messages = [
-                VoiceSessionMessage(
-                    speaker=msg["speaker"],
-                    message=msg["message"],
-                    timestamp=datetime.fromisoformat(msg["timestamp"])
-                )
+                VoiceSessionMessage(speaker=msg["speaker"], message=msg["message"], timestamp=datetime.fromisoformat(msg["timestamp"]))
                 for msg in db_session.transcript
             ]
-            
+
             summary = add_voice_transcript_to_chat(db, user_id, transcript_messages)
         else:
             # Create a basic summary if no transcript is available
@@ -363,15 +349,15 @@ async def get_session_summary(
 
 ---
 *This summary was generated from your voice therapy session.*"""
-        
+
         return {
             "session_id": session_id,
             "summary": summary,
             "therapy_type": db_session.therapy_type,
             "duration_minutes": db_session.duration_minutes,
-            "has_transcript": bool(db_session.transcript)
+            "has_transcript": bool(db_session.transcript),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -420,27 +406,23 @@ async def send_session_to_chat(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Find session in database
         db_session = get_voice_therapy_session(db, session_id)
         if not db_session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         if db_session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to access this session")
-        
+
         # Generate summary from transcript if available
         if db_session.transcript:
             # Convert stored transcript back to VoiceSessionMessage objects
             transcript_messages = [
-                VoiceSessionMessage(
-                    speaker=msg["speaker"],
-                    message=msg["message"],
-                    timestamp=datetime.fromisoformat(msg["timestamp"])
-                )
+                VoiceSessionMessage(speaker=msg["speaker"], message=msg["message"], timestamp=datetime.fromisoformat(msg["timestamp"]))
                 for msg in db_session.transcript
             ]
-            
+
             summary = process_voice_transcript_for_chat(db, user_id, session_id, transcript_messages)
         else:
             # Create a basic summary if no transcript is available
@@ -457,21 +439,16 @@ async def send_session_to_chat(
 
 ---
 *This summary was generated from your voice therapy session.*"""
-            
+
             # Create mentor message for basic summary
             # Assuming create_mentor_message is defined elsewhere or will be added
             # For now, we'll just log the summary and the session_id
             logger.info(f"Voice session {session_id} sent to mentor chat for user {user_id} (no transcript)")
-        
+
         logger.info(f"Voice session {session_id} sent to mentor chat for user {user_id}")
 
-        return {
-            "status": "success",
-            "message": "Voice session sent to mentor chat",
-            "session_id": session_id,
-            "summary": summary
-        }
-        
+        return {"status": "success", "message": "Voice session sent to mentor chat", "session_id": session_id, "summary": summary}
+
     except Exception as e:
         logger.error(f"Error sending session to chat: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to send session to chat: {str(e)}")
@@ -489,43 +466,35 @@ async def test_voice_to_chat_integration(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Create a sample transcript for testing
         sample_transcript = [
+            VoiceSessionMessage(speaker="user", message="Hello, I'm feeling a bit anxious today.", timestamp=datetime.utcnow()),
             VoiceSessionMessage(
-                speaker="user",
-                message="Hello, I'm feeling a bit anxious today.",
-                timestamp=datetime.utcnow()
-            ),
-            VoiceSessionMessage(
-                speaker="assistant", 
+                speaker="assistant",
                 message="I understand you're feeling anxious. Can you tell me more about what's causing this anxiety?",
-                timestamp=datetime.utcnow()
+                timestamp=datetime.utcnow(),
             ),
-            VoiceSessionMessage(
-                speaker="user",
-                message="I have a big presentation tomorrow and I'm worried about it.",
-                timestamp=datetime.utcnow()
-            ),
+            VoiceSessionMessage(speaker="user", message="I have a big presentation tomorrow and I'm worried about it.", timestamp=datetime.utcnow()),
             VoiceSessionMessage(
                 speaker="assistant",
                 message="That's a common source of anxiety. Let's talk about some strategies to help you feel more prepared and confident.",
-                timestamp=datetime.utcnow()
-            )
+                timestamp=datetime.utcnow(),
+            ),
         ]
-        
+
         # Process the sample transcript
         session_id = f"test_session_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         summary = process_voice_transcript_for_chat(db, user_id, session_id, sample_transcript)
-        
+
         return {
             "status": "success",
             "message": "Test voice-to-chat integration completed",
             "session_id": session_id,
             "messages_created": len(sample_transcript) + 1,  # +1 for completion message
-            "summary": summary
+            "summary": summary,
         }
-        
+
     except Exception as e:
         logger.error(f"Error in test voice-to-chat integration: {e}")
         raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
@@ -544,15 +513,15 @@ async def force_session_to_chat(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Find session in database
         db_session = get_voice_therapy_session(db, session_id)
         if not db_session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         if db_session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to access this session")
-        
+
         # Create a basic summary for the session
         basic_summary = f"""🎤 **Voice Therapy Session Completed**
 
@@ -570,27 +539,22 @@ async def force_session_to_chat(
 
 ---
 *Voice session completed at {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}*"""
-        
+
         # Create a mentor message for the session summary
         mentor_message = create_mentor_message(
-            db=db,
-            user_id=user_id,
-            role='system',
-            content=basic_summary,
-            message_type='voice_session',
-            session_id=session_id
+            db=db, user_id=user_id, role="system", content=basic_summary, message_type="voice_session", session_id=session_id
         )
-        
+
         logger.info(f"Voice session {session_id} manually saved to mentor chat for user {user_id}")
-        
+
         return {
             "status": "success",
             "message": "Voice session manually saved to mentor chat",
             "session_id": session_id,
             "message_id": mentor_message.id,
-            "summary": basic_summary
+            "summary": basic_summary,
         }
-        
+
     except Exception as e:
         logger.error(f"Error forcing session to chat: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to force session to chat: {str(e)}")
@@ -598,7 +562,7 @@ async def force_session_to_chat(
 
 def get_therapy_instructions(therapy_type: str) -> str:
     """Return specialized therapy instructions for OpenAI."""
-    
+
     # Kevin's personal context from kevin_daily_scenarios.md
     kevin_context = """You are talking to Kevin, a 28-year-old software developer who is your regular client.
 
@@ -613,10 +577,10 @@ KEVIN'S PERSONAL CONTEXT:
 - Key relationships: Father (high conflict), Boss (authority anxiety), Sarah (relationship maintenance)
 
 IMPORTANT: You know Kevin well from previous sessions. Use his name naturally, reference his specific situations, and build on previous conversations. This is not a first-time meeting."""
-    
+
     base_instructions = f"""{kevin_context}
 
-You are a compassionate, professional therapist conducting a voice therapy session with Kevin. 
+You are a compassionate, professional therapist conducting a voice therapy session with Kevin.
 
 Your approach should be:
 - Speak in a warm, empathetic tone, using Kevin's name naturally
@@ -631,12 +595,11 @@ Your approach should be:
 - Consider the time of day and his typical emotional state at that hour
 
 Remember: This is a real therapy session with Kevin, who trusts you with his mental health. You have context about his life and should use it to provide personalized support."""
-    
+
     therapy_specific = {
-        "general": """Focus on Kevin's current life situation and provide personalized support. 
-        Help him explore his thoughts and feelings in a safe, non-judgmental space, 
+        "general": """Focus on Kevin's current life situation and provide personalized support.
+        Help him explore his thoughts and feelings in a safe, non-judgmental space,
         considering his specific challenges with work, family, and relationships.""",
-        
         "anxiety": """Specialize in anxiety management techniques tailored to Kevin's lifestyle:
         - Deep breathing exercises for morning anxiety and work stress
         - Cognitive reframing for boss criticism and family conflicts
@@ -644,7 +607,6 @@ Remember: This is a real therapy session with Kevin, who trusts you with his men
         - Progressive muscle relaxation for shoulder tension
         - Challenging catastrophic thinking patterns about work and relationships
         - Specific strategies for his father calls and work presentations""",
-        
         "stress": """Focus on stress reduction techniques for Kevin's software developer lifestyle:
         - Mindfulness and present-moment awareness during work hours
         - Time management strategies for his demanding tech environment
@@ -652,14 +614,12 @@ Remember: This is a real therapy session with Kevin, who trusts you with his men
         - Work-life balance discussions considering his relationship with Sarah
         - Identifying stress triggers specific to his daily routine
         - Commute stress management and transition techniques""",
-        
         "depression": """Focus on depression support considering Kevin's living situation:
         - Cognitive behavioral therapy techniques for work and relationship challenges
         - Behavioral activation strategies for his apartment living
         - Mood tracking and awareness throughout his daily schedule
         - Building support systems with Sarah and his mother
         - Self-care and routine building for living alone""",
-        
         "sleep": """Focus on sleep hygiene and improvement for Kevin's night routine:
         - Sleep hygiene education for his apartment environment
         - Relaxation techniques for bedtime anxiety about tomorrow
@@ -667,7 +627,6 @@ Remember: This is a real therapy session with Kevin, who trusts you with his men
         - Creating optimal sleep environments in his living space
         - Managing racing thoughts about work and relationships at night
         - Specific techniques for his 10:30-11 PM worry window""",
-        
         "father_call_analysis": """Help Kevin process a difficult phone call through natural conversation.
 
 Your approach:
@@ -676,24 +635,26 @@ Your approach:
 - Naturally explore what happened: who was involved, how it went, what was discussed, how Kevin felt, and how he responded
 - Provide supportive insights when appropriate
 
-Keep the conversation focused on helping Kevin process the call experience, but let it flow naturally rather than following a rigid script."""
+Keep the conversation focused on helping Kevin process the call experience, but let it flow naturally rather than following a rigid script.""",
     }
-    
+
     return f"{base_instructions}\n\nSpecialization: {therapy_specific.get(therapy_type, therapy_specific['general'])}"
 
 
-def build_contextual_instructions(db: Session, user_id: int, therapy_type: str, entry_source: Optional[str] = None, context_summary: Optional[str] = None) -> str:
+def build_contextual_instructions(
+    db: Session, user_id: int, therapy_type: str, entry_source: Optional[str] = None, context_summary: Optional[str] = None
+) -> str:
     """Augment base instructions with lightweight, recent user context to reduce duplicate greetings
     and incorporate user's ongoing scenario (e.g., Kevin's daily scenarios) into the session.
     """
-    
+
     # SPECIAL CASE: Father call analysis - completely override everything
     if entry_source == "father_call_analysis":
         # For father_call_analysis entry source, we always assume it's about the father
         # No need to ask "who was the call with" - skip straight to A-G matrix questions
-        logger.info(f"Father call analysis session - assuming father call context")
+        logger.info("Father call analysis session - assuming father call context")
         logger.info(f"Context summary: {context_summary}")
-        
+
         # Focused approach for gathering A-G matrix information quickly
         conversation_guidance = """Quickly gather information about Kevin's phone call with his father for analysis purposes. Ask targeted questions to understand:
 
@@ -705,7 +666,7 @@ def build_contextual_instructions(db: Session, user_id: int, therapy_type: str, 
 - How did Kevin respond or react?
 
 Keep questions brief and focused. DO NOT provide therapeutic advice, coping strategies, or solutions. Just gather the facts about what happened. Kevin has dinner with Charlie coming up, so keep this session short and efficient."""
-        
+
         return f"""You are an information-gathering assistant helping to collect details about Kevin's phone call with his father for later analysis.
 
 IMPORTANT - SESSION OPENING: When the session starts, immediately greet Kevin with this exact sequence:
@@ -720,19 +681,19 @@ IMMEDIATE CONTEXT: {context_summary if context_summary else 'Kevin reported a di
 
 Keep the conversation focused and brief. Once you have enough information about the call dynamics, emotions, and responses, wrap up the session quickly so Kevin can move on with his day.
 """
-    
+
     base = get_therapy_instructions(therapy_type)
 
     # Add time-aware Kevin context
     current_time = datetime.utcnow()
     current_hour = current_time.hour
     current_weekday = current_time.strftime("%A")
-    
+
     time_context = f"""
 CURRENT TIME CONTEXT:
 - Time: {current_hour:02d}:00 UTC, {current_weekday}
 - Kevin's typical state at this hour: """
-    
+
     if 6 <= current_hour < 9:
         time_context += "Morning anxiety and motivation struggles. Focus on grounding, preparation, and positive day framework."
     elif 9 <= current_hour < 12:
@@ -768,9 +729,7 @@ CURRENT TIME CONTEXT:
 
     context_block = ""
     if recent_context:
-        context_block = (
-            "\n\nRECENT CONVERSATION CONTEXT (build on this, avoid repeating greetings):\n" + recent_context
-        )
+        context_block = "\n\nRECENT CONVERSATION CONTEXT (build on this, avoid repeating greetings):\n" + recent_context
 
     natural_guidance = (
         "\n\nGuidance for natural conversation: "
@@ -781,17 +740,19 @@ CURRENT TIME CONTEXT:
 
     entry_note = ""
     if entry_source == "card_followup":
-        entry_note = ("\n\nENTRY SOURCE: Kevin entered from a card follow-up. Acknowledge the card context briefly, "
-                      "ask one clarifying question about his current situation, then proceed supportively.")
+        entry_note = (
+            "\n\nENTRY SOURCE: Kevin entered from a card follow-up. Acknowledge the card context briefly, "
+            "ask one clarifying question about his current situation, then proceed supportively."
+        )
     elif entry_source == "text_chat":
-        entry_note = ("\n\nENTRY SOURCE: Kevin was chatting in text; continue the same topic naturally, building on the conversation.")
+        entry_note = "\n\nENTRY SOURCE: Kevin was chatting in text; continue the same topic naturally, building on the conversation."
     elif entry_source == "father_call_analysis":
-        entry_note = ("\n\nThis is a father call analysis session - Kevin needs support processing a difficult call with his father.")
+        entry_note = "\n\nThis is a father call analysis session - Kevin needs support processing a difficult call with his father."
     else:
-        entry_note = ("\n\nENTRY SOURCE: General voice chat. Use time context to provide relevant support.")
+        entry_note = "\n\nENTRY SOURCE: General voice chat. Use time context to provide relevant support."
 
     context_line = f"\n\nIMMEDIATE CONTEXT: {context_summary}" if context_summary else ""
-    
+
     # For father call analysis, override everything else and focus only on the call, but allow a closing redirect to dinner with Charlie
     # This father_call_analysis case is handled above, this should never execute
     if entry_source == "father_call_analysis":
@@ -813,62 +774,60 @@ def get_therapy_tools():
                 "properties": {
                     "key_topics": {"type": "string", "description": "Main topics discussed"},
                     "insights": {"type": "string", "description": "Key insights or breakthroughs"},
-                    "recommended_actions": {"type": "string", "description": "Suggested next steps or homework"}
+                    "recommended_actions": {"type": "string", "description": "Suggested next steps or homework"},
                 },
-                "required": ["key_topics"]
-            }
+                "required": ["key_topics"],
+            },
         },
         {
-            "type": "function", 
+            "type": "function",
             "name": "breathing_exercise",
             "description": "Guide the user through a breathing exercise",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "duration": {"type": "integer", "description": "Duration in seconds"},
-                    "technique": {"type": "string", "description": "Type of breathing technique"}
-                }
-            }
-        }
-    ] 
+                    "technique": {"type": "string", "description": "Type of breathing technique"},
+                },
+            },
+        },
+    ]
 
 
-async def _analyze_father_call_transcript(
-    db: Session, user_id: int, session_id: str, transcript: List[VoiceSessionMessage]
-) -> Optional[Dict]:
+async def _analyze_father_call_transcript(db: Session, user_id: int, session_id: str, transcript: List[VoiceSessionMessage]) -> Optional[Dict]:
     """Analyze father call transcript and create analysis summary."""
     try:
-        from app.services.father_call_analyzer import FatherCallAnalyzer
         from app.postgres.crud.gpt import create_mentor_message
-        
+        from app.services.father_call_analyzer import FatherCallAnalyzer
+
         logger.info(f"Starting father call analysis for session {session_id} with {len(transcript)} messages")
-        
+
         # Debug: Show transcript summary
         user_msgs = [msg.message for msg in transcript if msg.speaker == "user"]
         ai_msgs = [msg.message for msg in transcript if msg.speaker == "assistant"]
         logger.info(f"Transcript summary: {len(user_msgs)} user messages, {len(ai_msgs)} AI messages")
         logger.info(f"Sample user content: {str(user_msgs[:3])[:200]}")
-        
+
         analyzer = FatherCallAnalyzer()
         analysis_result = analyzer.analyze_transcript(transcript)
-        
+
         logger.info(f"Analysis result: {bool(analysis_result)}, complete: {analysis_result.get('analysis_complete') if analysis_result else False}")
-        
-        if analysis_result and analysis_result.get('analysis_complete'):
+
+        if analysis_result and analysis_result.get("analysis_complete"):
             # Create analysis summary for mentor chat
             matrix_text_lines = []
-            for cat, val in analysis_result['matrix_selections'].items():
+            for cat, val in analysis_result["matrix_selections"].items():
                 # Handle both single values and lists (multi-select categories)
                 if isinstance(val, list):
                     for v in val:
-                        label = analyzer.MATRIX_CATEGORIES[cat].get(v, f'Unknown {cat}{v}')
+                        label = analyzer.MATRIX_CATEGORIES[cat].get(v, f"Unknown {cat}{v}")
                         matrix_text_lines.append(f"**{cat}{v}**: {label}")
                 else:
-                    label = analyzer.MATRIX_CATEGORIES[cat].get(val, f'Unknown {cat}{val}')
+                    label = analyzer.MATRIX_CATEGORIES[cat].get(val, f"Unknown {cat}{val}")
                     matrix_text_lines.append(f"**{cat}{val}**: {label}")
             matrix_text = "\n".join(matrix_text_lines)
-            
-            suggestions_text = "\n".join([f"• **{s['name']}**: {s['description']}" for s in analysis_result['suggestions'][:2]])
+
+            suggestions_text = "\n".join([f"• **{s['name']}**: {s['description']}" for s in analysis_result["suggestions"][:2]])
             analysis_summary = f"""🔍 **Father Call Analysis Complete**
 
 **Matrix Classifications:**
@@ -884,36 +843,35 @@ Would you like to add a follow-up card for this evening? Tap "Add to plan" to sc
 
 ---
 *This analysis helps identify patterns in family communication and suggests targeted therapeutic approaches.*"""
-            
+
             # Save analysis to mentor chat
             create_mentor_message(
-                db=db,
-                user_id=user_id,
-                role='assistant',
-                content=analysis_summary,
-                message_type='father_call_analysis',
-                session_id=session_id
+                db=db, user_id=user_id, role="assistant", content=analysis_summary, message_type="father_call_analysis", session_id=session_id
             )
-            
+
             return analysis_result
-        
+
         return None
-        
+
     except Exception as e:
         logger.error(f"Error analyzing father call transcript: {e}")
-        logger.error(f"Exception details: ", exc_info=True)
+        logger.error("Exception details: ", exc_info=True)
         return None
 
 
-async def _create_father_call_reflection_card(
-    db: Session, user_id: int, session_id: str, analysis_result: Dict
-):
+async def _create_father_call_reflection_card(db: Session, user_id: int, session_id: str, analysis_result: Dict):
     """Create a follow-up reflection item: add a card to the user's plan (9 PM) with embedded A–G analysis,
     and post a short chat note."""
     try:
-        from app.postgres.crud.card import create_card_details, create_user_card
-        from app.postgres.schema.card import CardType, CategoryEnum, SpecialActions, TimeOfDay
         from datetime import timedelta
+
+        from app.postgres.crud.card import create_card_details, create_user_card
+        from app.postgres.schema.card import (
+            CardType,
+            CategoryEnum,
+            SpecialActions,
+            TimeOfDay,
+        )
 
         # 1) Create a special CardDetail with matrix data embedded
         logger.info(f"Creating CardDetail for father call reflection, user {user_id}, session {session_id}")
@@ -924,10 +882,10 @@ async def _create_father_call_reflection_card(
             category=CategoryEnum.SELF_DEVELOPMENT,
             details={
                 "session_id": session_id,
-                "matrix_analysis": analysis_result['matrix_selections'],
-                "conversation_summary": analysis_result.get('conversation_summary', ''),
-                "suggestions": analysis_result.get('suggestions', []),
-                "rationales": analysis_result.get('rationales', {}),
+                "matrix_analysis": analysis_result["matrix_selections"],
+                "conversation_summary": analysis_result.get("conversation_summary", ""),
+                "suggestions": analysis_result.get("suggestions", []),
+                "rationales": analysis_result.get("rationales", {}),
                 "reflection_type": "father_call",
             },
             description="Review your A–G analysis and discuss strategies for future calls",
@@ -939,19 +897,20 @@ async def _create_father_call_reflection_card(
 
         # 2) Schedule after the last evening card (typically "Dinner with Charlie")
         from app.postgres.crud.card import retrieve_cards
+
         today = datetime.now().date()
         start_of_day = datetime.combine(today, datetime.min.time())
         end_of_day = datetime.combine(today, datetime.max.time())
-        
+
         logger.info(f"Retrieving cards for today ({today}) to schedule reflection")
         # Get today's cards sorted by time
         today_cards = retrieve_cards(db, user_id, start_of_day, end_of_day, load_card_details=True)
         logger.info(f"Found {len(today_cards)} cards for today")
-        
+
         # Find the last evening card (after 6 PM)
         evening_cards = [card for card in today_cards if card.time.hour >= 18]
         logger.info(f"Found {len(evening_cards)} evening cards")
-        
+
         if evening_cards:
             # Schedule 30 minutes after the last evening card ends
             last_card = max(evening_cards, key=lambda x: x.time)
@@ -963,13 +922,13 @@ async def _create_father_call_reflection_card(
             # Fallback to 9 PM if no evening cards found
             follow_up_time = datetime.now().replace(hour=21, minute=0, second=0, microsecond=0)
             logger.info(f"No evening cards found, scheduling at 9 PM: {follow_up_time}")
-            
+
         # If the calculated time is in the past, schedule for tomorrow
         if follow_up_time <= datetime.now():
             follow_up_time = follow_up_time + timedelta(days=1)
             logger.info(f"Time was in past, moved to tomorrow: {follow_up_time}")
 
-        logger.info(f"Creating UserCard for reflection")
+        logger.info("Creating UserCard for reflection")
         user_card = create_user_card(
             db=db,
             user_id=user_id,
@@ -980,15 +939,16 @@ async def _create_father_call_reflection_card(
                 "location": "Home - Quiet space",
             },
         )
-        
+
         if user_card:
             logger.info(f"Created UserCard with ID: {user_card.card_id} at {user_card.time}")
         else:
-            logger.error(f"Failed to create UserCard - create_user_card returned None")
+            logger.error("Failed to create UserCard - create_user_card returned None")
             raise Exception("Failed to create UserCard")
 
         # 3) Post a short chat note so the user knows it was scheduled
         from app.postgres.crud.gpt import create_mentor_message
+
         chat_note = (
             "📝 Added 'Follow up on bad call with father' to your evening plan (after dinner). "
             "Tap the card later to view the full A–G matrix analysis and summary."
@@ -996,9 +956,9 @@ async def _create_father_call_reflection_card(
         create_mentor_message(
             db=db,
             user_id=user_id,
-            role='assistant',
+            role="assistant",
             content=chat_note,
-            message_type='activity_suggestion',
+            message_type="activity_suggestion",
             session_id=session_id,
         )
 
@@ -1006,7 +966,7 @@ async def _create_father_call_reflection_card(
 
     except Exception as e:
         logger.error(f"Error creating father call reflection card: {e}")
-        logger.error(f"Full exception details: ", exc_info=True)
+        logger.error("Full exception details: ", exc_info=True)
         return False
 
 
@@ -1024,74 +984,65 @@ async def analyze_father_call_session(
     try:
         token = decodeJWT(access_token)
         user_id = token["user_id"]
-        
+
         # Find session in database
         db_session = get_voice_therapy_session(db, session_id)
         if not db_session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         if db_session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized to access this session")
-        
+
         # Check if session has transcript
         if not db_session.transcript:
             raise HTTPException(status_code=400, detail="Session has no transcript to analyze")
-        
+
         # Convert stored transcript back to VoiceSessionMessage objects
         transcript_messages = [
             VoiceSessionMessage(
                 speaker=msg["speaker"],
                 message=msg["message"],
-                timestamp=datetime.fromisoformat(msg["timestamp"]) if msg.get("timestamp") else datetime.utcnow()
+                timestamp=datetime.fromisoformat(msg["timestamp"]) if msg.get("timestamp") else datetime.utcnow(),
             )
             for msg in db_session.transcript
         ]
-        
+
         # Analyze the transcript
         from app.services.father_call_analyzer import FatherCallAnalyzer
+
         analyzer = FatherCallAnalyzer()
         analysis_result = analyzer.analyze_transcript(transcript_messages)
-        
+
         # Convert analysis result to response format
         matrix_selections = []
-        for category, value in analysis_result['matrix_selections'].items():
+        for category, value in analysis_result["matrix_selections"].items():
             # Handle both single values and lists (multi-select categories)
             if isinstance(value, list):
                 for v in value:
                     label = analyzer.MATRIX_CATEGORIES[category].get(v, f"Unknown {category}{v}")
-                    rationale = analysis_result['rationales'].get(category, f"Selected based on conversation analysis")
-                    matrix_selections.append(MatrixSelection(
-                        category=category,
-                        value=v,
-                        label=label,
-                        rationale=rationale
-                    ))
+                    rationale = analysis_result["rationales"].get(category, "Selected based on conversation analysis")
+                    matrix_selections.append(MatrixSelection(category=category, value=v, label=label, rationale=rationale))
             else:
                 label = analyzer.MATRIX_CATEGORIES[category].get(value, f"Unknown {category}{value}")
-                rationale = analysis_result['rationales'].get(category, f"Selected based on conversation analysis")
-                matrix_selections.append(MatrixSelection(
-                    category=category,
-                    value=value,
-                    label=label,
-                    rationale=rationale
-                ))
-        
+                rationale = analysis_result["rationales"].get(category, "Selected based on conversation analysis")
+                matrix_selections.append(MatrixSelection(category=category, value=value, label=label, rationale=rationale))
+
         # Convert suggestions
         suggestions = [
             AnalysisSuggestion(
-                id=s['id'],
-                category=s['category'],
-                name=s['name'],
-                description=s['description'],
-                triggered_by=s['triggered_by'],
-                rationale=s['rationale'],
-                recommended_actions=s['recommended_actions']
+                id=s["id"],
+                category=s["category"],
+                name=s["name"],
+                description=s["description"],
+                triggered_by=s["triggered_by"],
+                rationale=s["rationale"],
+                recommended_actions=s["recommended_actions"],
             )
-            for s in analysis_result['suggestions']
+            for s in analysis_result["suggestions"]
         ]
-        
+
         logger.info(f"Father call analysis completed for session {session_id}")
-        
+
         # Create analysis summary for chat integration
         analysis_summary = f"""🔍 **Father Call Analysis Complete**
 
@@ -1110,34 +1061,29 @@ async def analyze_father_call_session(
 
 ---
 *This analysis helps identify patterns in family communication and suggests targeted therapeutic approaches.*"""
-        
-                # Save analysis summary to mentor chat
+
+        # Save analysis summary to mentor chat
         try:
             create_mentor_message(
-                db=db,
-                user_id=user_id,
-                role='assistant',
-                content=analysis_summary,
-                message_type='father_call_analysis',
-                session_id=session_id
+                db=db, user_id=user_id, role="assistant", content=analysis_summary, message_type="father_call_analysis", session_id=session_id
             )
             logger.info(f"Father call analysis saved to mentor chat for user {user_id}")
         except Exception as e:
             logger.error(f"Failed to save analysis to chat: {e}")
-        
+
         return FatherCallAnalysisResponse(
             session_id=session_id,
             matrix_selections=matrix_selections,
-            conversation_summary=analysis_result['conversation_summary'],
+            conversation_summary=analysis_result["conversation_summary"],
             suggestions=suggestions,
-            analysis_complete=analysis_result['analysis_complete']
+            analysis_complete=analysis_result["analysis_complete"],
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error analyzing father call session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to analyze session: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to analyze session: {str(e)}")
 
 
 @router.post("/session/{session_id}/schedule-father-reflection")
@@ -1175,13 +1121,14 @@ async def schedule_father_reflection(
         if not transcript_messages:
             raise HTTPException(status_code=400, detail="No transcript available to analyze")
 
-        analysis_result = await _analyze_father_call_transcript(
-            db, user_id, session_id, transcript_messages
-        )
+        analysis_result = await _analyze_father_call_transcript(db, user_id, session_id, transcript_messages)
         if not analysis_result:
-            raise HTTPException(status_code=400, detail="Unable to analyze transcript - conversation does not contain sufficient father call discussion for reflection card creation")
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to analyze transcript - conversation does not contain sufficient father call discussion for reflection card creation",
+            )
 
-        if not analysis_result.get('analysis_complete', False):
+        if not analysis_result.get("analysis_complete", False):
             raise HTTPException(status_code=400, detail="Father call analysis incomplete - insufficient conversation content for reflection card")
 
         ok = await _create_father_call_reflection_card(db, user_id, session_id, analysis_result)

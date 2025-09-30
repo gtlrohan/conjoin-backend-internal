@@ -1,16 +1,17 @@
 #
 # These are functions for proposing schedules
 #
-from typing import Callable, List, Tuple, Union
-import app.services.digital_mentor.user as User
+import random
+from datetime import datetime, timedelta
+from typing import Callable, List, Tuple
+
+import numpy as np
 import pandas as pd
 from pandas import DataFrame, Timestamp
-import numpy as np
-from datetime import datetime, timedelta
-import random
 
-from app.services.digital_mentor.scoring import score_morning
+import app.services.digital_mentor.user as User
 from app.services.digital_mentor.mh_sug import *
+from app.services.digital_mentor.scoring import score_morning
 
 
 def make_routines_day(day: Timestamp) -> DataFrame:

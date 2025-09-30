@@ -5,9 +5,9 @@ Revises: merge_voice_therapy_001
 Create Date: 2025-01-04 12:00:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'mentor_messages_001'
@@ -35,4 +35,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Drop mentor_messages table
     op.drop_index(op.f('ix_mentor_messages_id'), table_name='mentor_messages')
-    op.drop_table('mentor_messages') 
+    op.drop_table('mentor_messages')

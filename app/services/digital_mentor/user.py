@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Tuple
 
 from app.postgres.schema.card import UserCard
 from app.postgres.schema.cognitive_score import CognitiveScore

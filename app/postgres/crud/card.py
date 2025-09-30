@@ -1,19 +1,30 @@
 import copy
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Any
-from fastapi import HTTPException
-from sqlalchemy.exc import SQLAlchemyError
+from typing import Any, Dict, List, Optional
+
 from dateutil.rrule import rrulestr
-from sqlalchemy.orm import Session, joinedload, aliased, contains_eager
+from fastapi import HTTPException
 from sqlalchemy import and_, or_, select
+from sqlalchemy.orm import Session, aliased, joinedload
 from sqlalchemy.sql import func
 
 from app.postgres.crud.user import retrieve_user_by_id
-from app.postgres.models.card import CardData, CompletionDetails, CardStatus, SpecialActions, ToD
-from app.postgres.schema.card import CardMHCategory, MHCategory, UserCard, CardCompletionDetail, CardDetail
+from app.postgres.models.card import (
+    CardData,
+    CardStatus,
+    CompletionDetails,
+    SpecialActions,
+    ToD,
+)
+from app.postgres.schema.card import (
+    CardCompletionDetail,
+    CardDetail,
+    CardMHCategory,
+    MHCategory,
+    UserCard,
+)
 from app.postgres.schema.cognitive_score import CognitiveScore, CognitiveScoreImpact
-from app.postgres.schema.objective import Objective
 from app.postgres.schema.google_calendar import CalendarEvent
 from app.utils.cognitive_score_utils import calculate_score_impact
 

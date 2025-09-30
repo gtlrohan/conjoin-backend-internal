@@ -1,38 +1,33 @@
-import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware import Middleware
-from starlette_context.middleware import RawContextMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.staticfiles import StaticFiles
-from starlette.responses import PlainTextResponse
+from starlette_context.middleware import RawContextMiddleware
 
-from app.constants import ALLOWED_ORIGINS
+from app.admin import setup_admin
 from app.routes import (
+    ai_suggestions,
     auth,
     banking,
     cards,
+    father_analysis_cards,
     goals,
     gpt,
-    user,
-    scores,
-    mh_categories,
-    voice_therapist,
     mentor_messages,
-    father_analysis_cards,
+    mh_categories,
+    scores,
+    user,
+    voice_therapist,
     wellness,
-    ai_suggestions,
 )
 from app.routes.biometrics.fitbit import fitbit_external, fitbit_internal
 from app.routes.calendar.google import (
     google_calendar_external,
     google_calendar_internal,
 )
-from app.admin import setup_admin
 
 
 # Custom middleware to handle Cloud Run static asset serving

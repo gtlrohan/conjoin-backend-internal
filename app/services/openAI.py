@@ -42,7 +42,7 @@ async def ask_gpt(messages: List[Message], system_prompt: str, model_name: str):
     try:
         # Create messages list with system prompt included
         api_messages = [{"role": "developer", "content": system_prompt}] + [{"role": msg.role, "content": msg.content} for msg in messages]
-        
+
         response = client.chat.completions.create(
             model=model_name,
             messages=api_messages,

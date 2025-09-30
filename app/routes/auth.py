@@ -30,7 +30,7 @@ def post_user_login(body: UserLogin, db: Session = Depends(get_db)):
 @router.post("/register")
 def post_user_register(body: UserCreate, db: Session = Depends(get_db)):
     user = create_user(db, body)
-    cog_score = create_cognitive_score(db, user.user_id, 5.0)
+    create_cognitive_score(db, user.user_id, 5.0)
     create_cognitive_fingerprint(db, user.user_id, 5, 5, 5, 5, 5)
     return {"user_id": user.user_id, "email": user.email, "password": user.password}
 

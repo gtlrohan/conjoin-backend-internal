@@ -1,26 +1,8 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
-
 from app.constants import DATABASE_URL
 from app.postgres.database import Base
-from app.postgres.schema.user import User
-from app.postgres.schema.card import CardCompletionDetail, CardDetail, UserCard
-from app.postgres.schema.cognitive_score import CognitiveScore, CognitiveScoreImpact
-from app.postgres.schema.external_token import ExternalToken
-from app.postgres.schema.fitbit_heart import FitbitHeartLog, FitbitHeartRateZone, FitbitCustomHeartRateZone
-from app.postgres.schema.fitbit_sleep import FitbitSleepLog, FitbitSleepLevel, FitbitSleepSummary
-from app.postgres.schema.google_calendar import CalendarEvent, EventCreator, EventOrganizer, EventDate, EventAttendee
-from app.postgres.schema.objective import Objective
-from app.postgres.schema.user_preferences import UserPreferences
-from app.postgres.schema.cognitive_fingerprint import CognitiveFingerprint
-from app.postgres.schema.voice_therapy import VoiceTherapySession
-from app.postgres.schema.gpt import MentorMessage
-
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -75,7 +57,7 @@ def run_migrations_online() -> None:
 
     """
     from sqlalchemy import create_engine
-    
+
     connectable = create_engine(DATABASE_URL)
 
     with connectable.connect() as connection:

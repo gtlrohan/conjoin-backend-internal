@@ -1,13 +1,14 @@
+import random
+import time
 from datetime import datetime, timedelta
 from datetime import time as datetime_time
-import random
 from typing import List, Tuple
-import time
+
 from requests import Session
 
 from app.postgres.crud.card import retrieve_filtered_card_details
 from app.postgres.crud.goal import retrieve_all_goal_related_cards
-from app.postgres.schema.card import CardDetail, UserCard
+from app.postgres.schema.card import UserCard
 from app.services.digital_mentor.cfp import CognitiveFingerprint
 from app.services.digital_mentor.user import User
 
@@ -187,7 +188,7 @@ class Mentor:
             card.card_id for card in goals2Cards if any(goal.goal_id == card.goal_id and goal.completed < goal.target for goal in user.goals)
         }
 
-        for i in range(3):
+        for _i in range(3):
             duration = activity.card_details.duration
             chosen_cfp_attr = self.cognitive_weights_temp(user.cognitive_fingerprint, 0.5)[0]
             suggestion_results = retrieve_filtered_card_details(

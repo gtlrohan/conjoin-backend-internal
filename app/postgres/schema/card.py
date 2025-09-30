@@ -2,20 +2,27 @@ from datetime import datetime, time
 from enum import Enum
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
     Integer,
     Interval,
     String,
-    Boolean,
 )
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import backref, relationship
 
 from app.postgres.database import Base
-from app.postgres.models.card import CategoryEnum, HowWasIt, CompletionLevel, CardType, CardStatus, SpecialActions
+from app.postgres.models.card import (
+    CardStatus,
+    CardType,
+    CategoryEnum,
+    CompletionLevel,
+    HowWasIt,
+    SpecialActions,
+)
 
 # from app.postgres.schema.objective import Objective
 # from app.postgres.schema.mh_categories import MHCategory
