@@ -1,0 +1,22 @@
+venv
+__pycache__
+.env
+.env.production
+.service-accounts
+static/requests/*
+log.log
+.ini
+authentication
+audio_uploads
+.DS_STORE
+dump
+alembic.ini
+
+
+
+
+# Make sure to keep admin static files
+!app/static/admin/
+!app/static/admin/css/
+!app/static/admin/js/
+!app/static/admin/webfonts/

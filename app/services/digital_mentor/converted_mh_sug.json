@@ -1,0 +1,390 @@
+[
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "contact community",
+        "severity": [5],
+        "duration": [10, 20],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "phone friend",
+        "severity": [5],
+        "duration": [5, 10, 20],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "grounding",
+        "severity": [5],
+        "duration": [2, 5, 10],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "podcast - news",
+        "severity": [4, 3, 2],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "podcast - history",
+        "severity": [4, 3],
+        "duration": [60],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "you tube - animal shorts",
+        "severity": [4, 3],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "you tube - film reviews",
+        "severity": [4, 3],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "go for a walk",
+        "severity": [0, 3, 2],
+        "duration": [30],
+        "category": "EXERCISE"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "go for a light run",
+        "severity": [4, 3, 2],
+        "duration": [30],
+        "category": "EXERCISE"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "affirmation 1 - work",
+        "severity": [3, 2],
+        "duration": [1],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "breathing 4-7-8",
+        "severity": [3, 2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Check diary for upbeat moments",
+        "severity": [2],
+        "duration": [15],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Prepare a review of your meeting",
+        "severity": [3, 2],
+        "duration": [30],
+        "category": "SELF_DEVELOPMENT"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Prepare key points prior to meeting",
+        "severity": [0, 2],
+        "duration": [30],
+        "category": "SELF_DEVELOPMENT"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety"],
+        "activity": "play list - calm",
+        "severity": [2],
+        "duration": [30],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety", "social anxiety", "family anxiety"],
+        "activity": "quick yoga",
+        "severity": [2],
+        "duration": [30, 20],
+        "category": "EXERCISE"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Visualise sea",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Check diary for calm moments",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["work anxiety"],
+        "activity": "Check diary for scenic moments",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "affirmation 2 - social",
+        "severity": [4, 3, 2],
+        "duration": [1],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "humming breathing",
+        "severity": [4, 3, 2],
+        "duration": [10],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "playlist - techno",
+        "severity": [4, 3, 2],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "you tube - news updates",
+        "severity": [4, 3, 2],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "intense yoga",
+        "severity": [4, 3],
+        "duration": [60],
+        "category": "EXERCISE"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "go shopping (supermarket)",
+        "severity": [4, 3],
+        "duration": [30],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "go to Starbucks for a herbal tea",
+        "severity": [4, 3],
+        "duration": [20],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "Check diary for fun social moments",
+        "severity": [0],
+        "duration": [15],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "Visit interaction check in",
+        "severity": [3, 2],
+        "duration": [20],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "walk with friend",
+        "severity": [3, 2],
+        "duration": [30, 60],
+        "category": "EXERCISE"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "walk and phone friend",
+        "severity": [3, 2],
+        "duration": [15, 30],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "Visualise birds",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety", "family anxiety"],
+        "activity": "Visualise woodland",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "Check diary for group activity moments",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["social anxiety"],
+        "activity": "Check diary for fun eating out moments",
+        "severity": [2],
+        "duration": [5],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "affirmation 3 - family",
+        "severity": [4, 3, 2],
+        "duration": [1],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "resonance breathing",
+        "severity": [4, 3, 2],
+        "duration": [10],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "playlist - mixed",
+        "severity": [4, 3],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "on line chess",
+        "severity": [4, 3, 2],
+        "duration": [15],
+        "category": "HOBBIES"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "Check diary for fun family moments",
+        "severity": [0],
+        "duration": [15],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "follow on call with father",
+        "severity": [2],
+        "duration": [15],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "contact community (sister)",
+        "severity": [2],
+        "duration": [15],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["family anxiety"],
+        "activity": "play list - mixed",
+        "severity": [2],
+        "duration": [30],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["eating anxiety"],
+        "activity": "affirmation 5 -eating",
+        "severity": [4, 3, 2],
+        "duration": [1],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["eating anxiety", "sleeping anxiety"],
+        "activity": "community",
+        "severity": [4],
+        "duration": [15],
+        "category": "RELATIONSHIPS"
+    },
+    {
+        "cat": ["eating anxiety"],
+        "activity": "eat protein bar",
+        "severity": [4, 3, 2],
+        "duration": [10],
+        "category": "NUTRITION"
+    },
+    {
+        "cat": ["eating anxiety"],
+        "activity": "fruit drink",
+        "severity": [4, 3, 2],
+        "duration": [10],
+        "category": "NUTRITION"
+    },
+    {
+        "cat": ["eating anxiety"],
+        "activity": "Avoid coffee, alcohol,",
+        "severity": [0, 3, 2],
+        "duration": [0],
+        "category": "NUTRITION"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "sleep routine",
+        "severity": [4],
+        "duration": [30, 60],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "affirmation 4 - sleep",
+        "severity": [4, 3],
+        "duration": [1],
+        "category": "MOOD"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "meditation app",
+        "severity": [4, 3],
+        "duration": [30],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "relaxing yoga",
+        "severity": [4, 3],
+        "duration": [30],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "body scan meditation",
+        "severity": [4],
+        "duration": [30],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "progressive muscle relaxation",
+        "severity": [4],
+        "duration": [5],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "warm bath / aroma oils",
+        "severity": [3],
+        "duration": [30],
+        "category": "SLEEP"
+    },
+    {
+        "cat": ["sleeping anxiety"],
+        "activity": "breathing box",
+        "severity": [3],
+        "duration": [5],
+        "category": "SLEEP"
+    }
+]
+
+
+

@@ -1,0 +1,249 @@
+---
+alwaysApply: true
+---
+
+# Implementation Rules - ConjoinAI Backend API
+
+## Overview
+This is a FastAPI-based backend server for the ConjoinAI digital healthcare mentor application. It provides REST APIs for managing user activities (cards), goals, cognitive assessments, and real-time voice therapy sessions. The system uses AI-powered suggestions based on user's cognitive fingerprint and integrates with external services like OpenAI, Google Calendar, and Fitbit.
+
+It serves a Flutter mobile application and potentially web clients. The application structure follows domain-driven design with clear separation of concerns.
+
+## Core Architecture Rules
+
+### Database & ORM Pattern
+- Use **SQLAlchemy** as ORM with declarative base models in `app/postgres/schema/`
+- **Pydantic** models in `app/postgres/models/` for API request/response validation
+- **CRUD operations** centralized in `app/postgres/crud/` for database interactions
+- **Alembic** for database migrations in `alembic/versions/`
+- Always use `get_db()` dependency injection for database sessions
+
+### Authentication & Authorization
+- **JWT-based authentication** with separate auth and refresh tokens
+- Use `JWTBearer()` dependency for protected endpoints
+- Token validation in `app/middleware/jwt.py` with expiration handling
+- User context extracted via `decodeJWT(access_token)["user_id"]`
+
+### API Structure & Routing
+- **FastAPI routers** organized by domain in `app/routes/`
+- All endpoints require authentication unless explicitly public
+- Use dependency injection pattern: `db: Session = Depends(get_db)`
+- RESTful conventions with proper HTTP status codes and error handling
+
+## Data Model Architecture
+
+### Core Entities
+- **User**: Central entity with relationships to all other models
+- **CardDetail**: Template for activities (nutrition, exercise, etc.)
+- **UserCard**: Scheduled instance of a CardDetail for a specific user/time
+- **CognitiveFingerprint**: User's anxiety levels across different domains
+- **CognitiveScore**: Overall mental health score (0-10 scale)
+- **Goals**: User objectives with completion tracking
+
+### Card System (Core Feature)
+- **CardDetail**: Immutable activity templates with duration, category, time-of-day restrictions
+- **UserCard**: User-specific scheduled instances with time, location, recurrence
+- **CardCompletionDetail**: Completion tracking with mood ratings and impact scores
+- **Status Lifecycle**: `ongoing` → `completed`/`missed`/`deleted`
+
+### Cognitive Assessment System
+- **CognitiveFingerprint**: Tracks anxiety in work, social, family, eating, sleeping domains
+- **CognitiveScore**: Updated based on card completion patterns and mood ratings
+- **CognitiveScoreImpact**: Tracks how each card completion affects overall score
+
+## Database Patterns
+
+### SQLAlchemy Model Pattern
+```python
+# Always follow this pattern in app/postgres/schema/
+class EntityName(Base):
+    __tablename__ = "table_name"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Foreign keys
+    user_id = Column(Integer, ForeignKey("User.user_id"))
+    
+    # Relationships
+    user = relationship("User", back_populates="entities")
+```
+
+### Pydantic Model Pattern
+```python
+# Always follow this pattern in app/postgres/models/
+class EntityRequest(BaseModel):
+    field: str
+    optional_field: Optional[str] = None
+
+class EntityResponse(BaseModel):
+    id: int
+    field: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True  # For SQLAlchemy integration
+```
+
+### CRUD Operation Pattern
+```python
+# Always follow this pattern in app/postgres/crud/
+def create_entity(db: Session, user_id: int, data: EntityRequest):
+    db_entity = EntitySchema(**data.dict(), user_id=user_id)
+    db.add(db_entity)
+    db.commit()
+    db.refresh(db_entity)
+    return db_entity
+
+def retrieve_entities(db: Session, user_id: int, **filters):
+    return db.query(EntitySchema).filter(
+        EntitySchema.user_id == user_id,
+        # Additional filters
+    ).all()
+```
+
+## Route Implementation Patterns
+
+### Protected Endpoint Pattern
+```python
+@router.post("/endpoint")
+def endpoint_function(
+    request_data: RequestModel,
+    db: Session = Depends(get_db),
+    access_token: str = Depends(JWTBearer()),
+):
+    token = decodeJWT(access_token)
+    user_id = token["user_id"]
+    
+    # Business logic using CRUD operations
+    result = crud_function(db, user_id, request_data)
+    return result
+```
+
+### Error Handling Pattern
+- Use `HTTPException` for API errors with appropriate status codes
+- Always use try-catch blocks for database operations with rollback
+- Log errors with descriptive messages for debugging
+
+## Business Logic Patterns
+
+### Digital Mentor Service
+- **Morning Orientation**: AI suggests activities based on cognitive fingerprint and goals
+- **Dynamic Scheduling**: Find available time slots using `retrieve_next_available_slot()`
+- **Cognitive Weighting**: Use probabilistic selection based on anxiety levels
+- **Goal Integration**: Prioritize activities that advance user's goals
+
+### Card Completion Flow
+```python
+# Always follow this pattern for card completion:
+1. Create CardCompletionDetail with mood/completion data
+2. Calculate cognitive score impact using utils
+3. Update user's CognitiveScore (bounded 0-10)
+4. Create CognitiveScoreImpact record for tracking
+5. Handle special actions (nutrition cards → snack suggestions)
+```
+
+## External Service Integration
+
+### OpenAI Integration Patterns
+- **Chat API**: Use `app/services/openAI.py` for text-based AI interactions
+- **Realtime API**: Voice therapy sessions through `/voice-therapist` endpoints
+- **Session Management**: Ephemeral tokens for WebRTC connections
+- **Cost Tracking**: Token counting and pricing calculations
+
+### Authentication Flow
+```python
+# Standard OAuth integration pattern:
+1. Redirect user to external service OAuth
+2. Handle callback with authorization code
+3. Exchange for access/refresh tokens
+4. Store in ExternalToken table linked to user
+5. Use tokens for API calls with refresh logic
+```
+
+## Key Implementation Patterns
+
+### Time and Scheduling
+- **Time-of-Day Restrictions**: Use `TimeOfDay` enum for activity scheduling
+- **Recurrence Handling**: Support RRULE patterns for recurring activities
+- **Available Slot Finding**: Smart scheduling to avoid conflicts
+
+### Cognitive Score System
+```python
+# Cognitive score updates always follow this pattern:
+old_score = user.cognitive_score
+impact = calculate_score_impact(how_was_it, completion_level)
+new_score = min(max(old_score + impact, 0), 10)  # Bounded 0-10
+```
+
+### Data Validation & Serialization
+- Use Pydantic for all API request/response models
+- SQLAlchemy relationships for data integrity
+- JSON fields for flexible data storage (card details, recurrence rules)
+
+## Critical Implementation Rules
+
+### Database Transactions
+- Always commit database changes explicitly
+- Use rollback in exception handlers
+- Refresh objects after database operations to get updated data
+
+### User Context
+- Extract user_id from JWT token in all protected endpoints
+- Never trust user_id from request body - always use token
+- Filter all queries by user_id for data isolation
+
+### Card System Rules
+- CardDetail templates are immutable - don't modify after creation
+- UserCard instances can be rescheduled/updated
+- Always check time conflicts when scheduling
+- Use CardCompletionDetail for tracking, not updating UserCard status
+
+### Voice Therapy Integration
+- Sessions create ephemeral OpenAI Realtime API tokens
+- Store session metadata in database for tracking
+- Handle WebRTC connection through frontend with session credentials
+
+## Environment & Configuration
+
+### Required Environment Variables
+```bash
+# Database
+POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_SERVER, POSTGRES_DB
+
+# Authentication
+SECRET_KEY, JWT_ALGORITHM
+
+# External APIs
+OPENAI_API_KEY, GOOGLE_CLIENT_ID, FITBIT_CLIENT_ID
+```
+
+### Development Tools
+- **FastAPI**: Automatic OpenAPI documentation at `/docs`
+- **SQLAdmin**: Database admin interface
+- **Alembic**: Database migration management
+- **Black/Ruff**: Code formatting and linting
+
+## File Organization Principles
+
+### Directory Structure
+- `/app/routes/` - API endpoints organized by domain
+- `/app/postgres/schema/` - SQLAlchemy database models  
+- `/app/postgres/models/` - Pydantic request/response models
+- `/app/postgres/crud/` - Database operation functions
+- `/app/services/` - Business logic and external integrations
+- `/app/middleware/` - Authentication and request processing
+
+### Naming Conventions
+- SQLAlchemy models: PascalCase (e.g., `UserCard`) 
+- Pydantic models: PascalCase with purpose suffix (e.g., `CardDataRequest`)
+- CRUD functions: verb_entity format (e.g., `create_user_card`)
+- API endpoints: RESTful paths with clear resource naming
+
+## Key Files to Understand
+- `app/main.py` - FastAPI application setup and middleware configuration
+- `app/postgres/database.py` - Database connection and session management
+- `app/middleware/jwt.py` - Authentication token handling
+- `app/routes/cards.py` - Core card management API (primary feature)
+- `app/services/digital_mentor/mentor.py` - AI-powered activity suggestion logic
+- `app/postgres/schema/card.py` - Core card data models and relationships
